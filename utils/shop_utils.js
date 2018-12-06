@@ -4,17 +4,15 @@ const fs = require('fs');
 const request = require('request');
 const ROOT_URL = 'https://www.vatgia.com';
 
-const _getShopDetailInfo = async (shopId, category, resolve) => {
+const _getShopDetailInfo = async (shopId, category, detailProductUrl, resolve) => {
     const url = `${ROOT_URL}/${shopId}&module=contact}`;
     console.log(`processing url: ${ROOT_URL}/${shopId}&module=contact` );
     try {
         request(url, (err, res, body) => {
             console.log(err);
-            const $ = cheerio.load(body);
+            let $ = cheerio.load(body);
             // resource
             fs.appendFileSync('./result','vatgia|')
-            // shop name
-            fs.appendFileSync('./result',$($('.estore_statistic > .normal > b')[0]).text()+'|');
             // shop id
             fs.appendFileSync('./result', shopId+'|');
             // successfult_online_trading
@@ -46,9 +44,41 @@ const _getShopDetailInfo = async (shopId, category, resolve) => {
             averageSum = (Math.floor(averageSum/1000))*1000;
             fs.appendFileSync('./result',averageSum+'|');
             // category
-            fs.appendFileSync('./result',category+'\n');
-            
-            resolve();
+            fs.appendFileSync('./result',category+'|');
+
+            request(detailProductUrl, (err, res, body) => {
+                $ = cheerio.load(body);
+                let mobile_number = '';
+
+                // shop name
+                fs.appendFileSync('./result',$($('.estore_name.fl > .name')[0]).text()+'|');
+
+                // mobile phone
+                $('.estore_mobile_new_hide > a').each(function(){
+                    mobile_number += ($(this).text()).replace(/ /g,'')+'-';
+                });
+                fs.appendFileSync('./result',mobile_number+'|');
+
+                // address
+                let address = $($('.estore_address')[0]).attr('title'); 
+                fs.appendFileSync('./result',address+'|');
+
+                request(`https://www.vatgia.com/${shopId}&module=estimate`, (err, res, body) => {
+                    $ = cheerio.load(body);
+                    // rating
+                    let rating = null;
+                    let arrTextNote = $('.text_note');
+                    arrTextNote.each(function(){
+                        if($(this).text() === "Được đánh giá tốt"){
+                            rating = $($('.number')[0]).text();
+                        }
+                    })
+                    fs.appendFileSync('./result',rating+'\n');
+
+                    resolve();
+                })
+                
+            })
         })
         // await browser.close();
     } catch (error) {
@@ -57,9 +87,9 @@ const _getShopDetailInfo = async (shopId, category, resolve) => {
     }
 };
 
-const getShopDetailInfo = (shopId, category) => {
+const getShopDetailInfo = (shopId, category, detailProductUrl) => {
     return new Promise((resolve, reject) => {
-        _getShopDetailInfo(shopId, category, resolve);
+        _getShopDetailInfo(shopId, category, detailProductUrl, resolve);
     })
 }
 

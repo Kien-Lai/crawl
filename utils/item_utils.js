@@ -14,7 +14,7 @@ const _getItemInfoPageUrl = async (url, filename, resolve) => {
         // get item info page url 
         // console.log(i);
         // console.log($(this).attr('href'));
-        fs.appendFileSync(`./file/`+filename, `${$(this).attr('href')}\n`);
+        fs.appendFileSync(`./file/`+filename+'_raw', `${$(this).attr('href')}\n`);
     });
     await browser.close();
     resolve();
